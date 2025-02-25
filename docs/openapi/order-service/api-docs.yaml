@@ -1,0 +1,225 @@
+openapi: 3.1.0
+info:
+  title: OpenAPI definition
+  version: v0
+servers:
+- url: http://localhost:8082
+  description: Generated server url
+paths:
+  /api/v1/orders:
+    get:
+      tags:
+      - order-controller
+      operationId: getAllOrders
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 1
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "409":
+          description: Conflict
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrderPageResponseDto"
+    post:
+      tags:
+      - order-controller
+      operationId: createOrder
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderRequestDto"
+        required: true
+      responses:
+        "409":
+          description: Conflict
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "200":
+          description: OK
+  /api/v1/orders/{id}:
+    get:
+      tags:
+      - order-controller
+      operationId: getOrderById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "409":
+          description: Conflict
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrderDto"
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          format: int32
+        errorCode:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    OrderItemRequestDto:
+      type: object
+      properties:
+        id:
+          type: string
+        quantity:
+          type: integer
+          format: int32
+          minimum: 0
+        useLoyaltyPoints:
+          type: boolean
+      required:
+      - id
+      - quantity
+    OrderRequestDto:
+      type: object
+      properties:
+        customerId:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItemRequestDto"
+      required:
+      - customerId
+      - items
+    OrderDto:
+      type: object
+      properties:
+        orderId:
+          type: string
+        customerId:
+          type: string
+        orderDate:
+          type: string
+          format: date-time
+        totalAmount:
+          type: number
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItemDto"
+    OrderItemDto:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        isbn:
+          type: string
+        type:
+          type: string
+          enum:
+          - NEW_RELEASE
+          - REGULAR
+          - OLD_EDITION
+        quantity:
+          type: integer
+          format: int32
+        originalPrice:
+          type: number
+        discountPercentage:
+          type: integer
+          format: int32
+        loyaltyPointsUsed:
+          type: boolean
+        finalPrice:
+          type: number
+        totalPrice:
+          type: number
+    OrderPageResponseDto:
+      type: object
+      properties:
+        orders:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderDto"
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        currentPage:
+          type: integer
+          format: int32
+        pageSize:
+          type: integer
+          format: int32

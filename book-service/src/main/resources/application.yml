@@ -1,0 +1,55 @@
+server:
+  port: ${SERVER_PORT:8081}
+
+spring:
+  profiles:
+    active:
+      - ${PROFILE:dev}
+  application:
+    name: book-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://mysql:3306/inventory_db}
+    username: ${SPRING_DATASOURCE_USERNAME:user}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:rabbitmq}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USER:r-user}
+    password: ${SPRING_RABBITMQ_PASSWORD:r-password}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    tags:
+      service: book-service
+    distribution:
+      percentiles-histogram:
+        all: true
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      export:
+        enabled: true
+      endpoint: "${ZIPKIN_URL:http://zipkin:9411}/api/v2/spans"
+
+jwt:
+  secret: ${JWT_SECRET}
+
+logging:
+  level:
+    root: INFO
+    io.opentelemetry.exporter.zipkin: OFF
+
+

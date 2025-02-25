@@ -1,0 +1,147 @@
+openapi: 3.1.0
+info:
+  title: OpenAPI definition
+  version: v0
+servers:
+- url: http://localhost:8083
+  description: Generated server url
+paths:
+  /api/v1/customers:
+    get:
+      tags:
+      - customer-controller
+      operationId: getAllCustomers
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 1
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "404":
+          description: Not Found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerPageResponseDto"
+  /api/v1/customers/{id}:
+    get:
+      tags:
+      - customer-controller
+      operationId: getCustomerById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "404":
+          description: Not Found
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal Server Error
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          format: int32
+        errorCode:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    AddressDto:
+      type: object
+      properties:
+        street:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+        type:
+          type: string
+          enum:
+          - HOME
+          - WORK
+          - SHIPPING
+          - BILLING
+    CustomerDto:
+      type: object
+      properties:
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        loyaltyPoints:
+          type: integer
+          format: int32
+        addresses:
+          type: array
+          items:
+            $ref: "#/components/schemas/AddressDto"
+    CustomerPageResponseDto:
+      type: object
+      properties:
+        customers:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustomerDto"
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        currentPage:
+          type: integer
+          format: int32
+        pageSize:
+          type: integer
+          format: int32

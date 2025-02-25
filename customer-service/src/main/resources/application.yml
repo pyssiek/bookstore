@@ -1,0 +1,48 @@
+server:
+  port: ${SERVER_PORT:8083}
+
+spring:
+  application:
+    name: customer-service
+  profiles:
+    active:
+      - ${PROFILE:dev}
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://mongo:27017/bookstore}
+
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:rabbitmq}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:r-user}
+    password: ${SPRING_RABBITMQ_PASSWORD:r-password}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    tags:
+      service: customer-service
+    distribution:
+      percentiles-histogram:
+        all: true
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      export:
+        enabled: true
+      endpoint: "${ZIPKIN_URL:http://zipkin:9411}/api/v2/spans"
+
+logging:
+  level:
+    root: INFO
+    io.opentelemetry.exporter.zipkin: OFF
+
+
+loyaltypoints:
+  numberOfLoyaltyPointsForFreeBook: 10
+  numberOfLoyaltyPointsPerBook: 1

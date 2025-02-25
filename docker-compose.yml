@@ -1,0 +1,215 @@
+services:
+  mysql:
+    image: mysql:latest
+    container_name: inventory_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: inventory_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - mysql_network
+
+  adminer:
+    image: adminer:latest
+    container_name: adminer_ui
+    depends_on:
+      - mysql
+    restart: always
+    ports:
+      - "8088:8080"
+    networks:
+      - mysql_network
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: r-user
+      RABBITMQ_DEFAULT_PASS: r-password
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - rabbit_network
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo_db
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - mongo_network
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo_express
+    restart: always
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+    ports:
+      - "8084:8081"
+    depends_on:
+      - mongo
+    networks:
+      - mongo_network
+
+  book-service:
+    build: ./book-service
+    container_name: book_service
+    depends_on:
+      - mysql
+      - rabbitmq
+      - zipkin
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/inventory_db
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: r-user
+      SPRING_RABBITMQ_PASSWORD: r-password
+      ZIPKIN_URL: http://zipkin:9411
+      JWT_SECRET: "a-string-secret-at-least-256-bits-long"
+    ports:
+      - "8081:8081"
+    networks:
+      - mysql_network
+      - service_network
+      - rabbit_network
+
+  order-service:
+    build: ./order-service
+    container_name: order_service
+    depends_on:
+      - mysql
+      - rabbitmq
+      - zipkin
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/bookstore
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: r-user
+      SPRING_RABBITMQ_PASSWORD: r-password
+      ZIPKIN_URL: http://zipkin:9411
+      BOOK_SERVICE_URL: http://book-service:8081
+      CUSTOMER_SERVICE_URL: http://customer-service:8083
+    ports:
+      - "8082:8082"
+    networks:
+      - mongo_network
+      - service_network
+      - rabbit_network
+
+  customer-service:
+    build: ./customer-service
+    container_name: customer_service
+    depends_on:
+      - mongo
+      - rabbitmq
+      - zipkin
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/bookstore
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: r-user
+      SPRING_RABBITMQ_PASSWORD: r-password
+      ZIPKIN_URL: http://zipkin:9411
+    ports:
+      - "8083:8083"
+    networks:
+      - mongo_network
+      - service_network
+      - rabbit_network
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api_gateway
+    depends_on:
+      - book-service
+      - order-service
+      - customer-service
+    ports:
+      - "8080:8080"
+    networks:
+      - service_network
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    depends_on:
+      - book-service
+      - order-service
+      - customer-service
+      - zipkin
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    networks:
+      - service_network  
+      - monitoring-network
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - service_network
+      - monitoring-network
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/provisioning/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - service_network  
+      - monitoring-network  
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    environment:
+      - STORAGE_TYPE=mem
+    networks:
+      - service_network
+
+volumes:
+  mysql_data:
+  grafana_data:
+  mongo_data:
+
+networks:
+  mysql_network:
+  rabbit_network:
+  mongo_network:
+  service_network:
+  monitoring-network:
+  

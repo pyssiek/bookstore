@@ -1,0 +1,68 @@
+server:
+  port: ${SERVER_PORT:8082}
+
+spring:
+  application:
+    name: order-service
+  profiles:
+    active:
+      - ${PROFILE:dev}
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://mongo:27017/bookstore}
+
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:rabbitmq}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:r-user}
+    password: ${SPRING_RABBITMQ_PASSWORD:r-password}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    tags:
+      service: order-service
+    distribution:
+      percentiles-histogram:
+        all: true
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      export:
+        enabled: true
+      endpoint: "${ZIPKIN_URL:http://zipkin:9411}/api/v2/spans"
+
+logging:
+  level:
+    root: INFO
+    io.opentelemetry.exporter.zipkin: OFF
+
+service:
+  book:
+    url: ${BOOK_SERVICE_URL:http://book-service:8081}
+  customer:
+    url: ${CUSTOMER_SERVICE_URL:http://customer-service:8083}
+
+pricing-rules:
+  numberOfLoyaltyPointsForFreeBook: 10
+  freeBookTypes:
+    - REGULAR
+    - OLD_EDITION
+  discountRules:
+    NEW_RELEASE:
+      discount: 0
+      bundle: 0
+      bundleDiscount: 0
+    REGULAR:
+      discount: 0
+      bundle: 3
+      bundleDiscount: 10
+    OLD_EDITION:
+      discount: 20
+      bundle: 3
+      bundleDiscount: 5
